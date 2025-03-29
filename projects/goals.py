@@ -110,15 +110,23 @@ for i, goal in enumerate(goals):
             new_subgoal_text = st.text_input(f"Add subgoal", key=f"subgoal_input_{goal['created_at']}")
             if st.button("➕ Add"):
                 if new_subgoal_text:
-                    goal["subgoals"].append({
-                        "text": new_subgoal_text,
-                        "completed": False,
-                    })
-                    save_goals(goals)
-                    st.rerun()
+                    ok = False
+                    for subgoal in goal["subgoals"]:
+                        if new_subgoal_text == subgoal["text"]:
+                            ok = True
+                    if (ok == False):
+                        goal["subgoals"].append({
+                            "text": new_subgoal_text,
+                            "completed": False,
+                        })
+                        save_goals(goals)
+                        st.rerun()
+                    else:
+                        st.warning("You have already added this subgoal")
 
         if col1.button(f"➕ Add subgoal", key=f"add_subgoal_{goal['created_at']}"):
             write()
+            
         for j, subgoal in enumerate(goal["subgoals"]):
             col1, col2, col3 = st.columns([0.6, 0.2, 0.2])
 
@@ -126,13 +134,20 @@ for i, goal in enumerate(goals):
             if subgoal_text != "completed":
                 @st.dialog("Edit your subgoal")
                 def edit_subgoal():
-                    new_subgoal_text = st.text_input(f"✏️ Edit your subgoal", value=st.session_state.edit_subgoal_text, key=f"subgoal_input_edit_{goal['created_at']}_{subgoal['text']}")
-                    if st.button("💾 Save changes", key=f"save_subgoal_{goal['created_at']}_{subgoal['text']}"):
-                        subgoal['text'] = new_subgoal_text
-                        save_goals(goals)
-                        del st.session_state.edit_subgoal
-                        del st.session_state.edit_subgoal_text
-                        st.rerun()
+                    new_subgoal_text = st.text_input(f"✏️ Edit your subgoal", key=f"subgoal_input_edit_{goal['created_at']}")
+                    if st.button("💾 Save changes", key=f"save_subgoal_{goal['created_at']}"):
+                        ok = False
+                        for subgoal in goal["subgoals"]:
+                            if new_subgoal_text == subgoal["text"]:
+                                ok = True
+                        if ok == False:
+                            subgoal['text'] = new_subgoal_text
+                            save_goals(goals)
+                            del st.session_state.edit_subgoal
+                            del st.session_state.edit_subgoal_text
+                            st.rerun()
+                        else:
+                            st.warning("You have already added this subgoal")
 
                 if 'edit_subgoal' in st.session_state and st.session_state.edit_subgoal == subgoal['text']:
                     edit_subgoal()
