@@ -1,31 +1,31 @@
 import streamlit as st
 import json
 from datetime import datetime
- 
-DATA_FILE = "data_bases/tasks.json"
- 
+
+DATA_FILE = "tasks.json"
+
 def load_goals():
     try:
         with open(DATA_FILE, "r") as file:
             return json.load(file)
-    except (FileNotFoundError):
+    except FileNotFoundError:
         return []
- 
+
 def save_goals(goals):
     with open(DATA_FILE, "w") as file:
         json.dump(goals, file, indent=4)
- 
+
 def get_current_time():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
- 
+
 def sort_by_date(goal):
     return goal["created_at"]
- 
+
 def sort_by_status(goal):
     return goal["completed"]
- 
+
 goals = load_goals()
- 
+
 st.title("✨ My goals ✨")
 
 new_goal = st.text_input("🔖 Add your new goal")
@@ -44,59 +44,44 @@ if st.button("➕ Add goal"):
         })
         save_goals(goals)
         st.rerun()
- 
+
 sort_option = st.selectbox("🔄 Sort of goals", ["By date 🗓️", "By status ⚖️"])
- 
+
 if sort_option == "By date 🗓️":
     goals.sort(key=sort_by_date, reverse=True)
 elif sort_option == "By status ⚖️":
     goals.sort(key=sort_by_status, reverse=True)
- 
+
 completed_goals = sum(1 for goal in goals if goal["completed"])
 total_goals = len(goals)
 st.write(f"✅ Completed goals: {completed_goals} из {total_goals}")
- 
+
 st.subheader("📝 My goals:")
- 
-def get_goal_color(subgoals):
+
+def get_goal_color(subgoals, goal):
     completed_subgoals = sum(1 for subgoal in subgoals if subgoal["completed"])
-    if len(subgoals) == 0:
-        goal["completed"] = False,
-        return "background-color: #FF6347;"
+    if goal["completed"]:
+        return "background-color: #32CD32;"
     elif completed_subgoals * 100 / len(subgoals) >= 40 and completed_subgoals != len(subgoals):
-        goal["completed"] = False,
         return "background-color: #FFD700;"
     elif completed_subgoals == len(subgoals):
-        goal["completed"] = True,
         return "background-color: #32CD32;"
     else:
-        goal["completed"] = False,
         return "background-color: #FF6347;"
- 
+
 for i, goal in enumerate(goals):
     col1, col2, col3 = st.columns([0.6, 0.2, 0.2])
- 
-    goal_color = get_goal_color(goal["subgoals"])
+
+    goal_color = get_goal_color(goal["subgoals"], goal)
     goal_text = f"{goal['text']} (Created: {goal['created_at']})"
- 
+
     col1.markdown(f'<div style="{goal_color} padding: 10px; border-radius: 5px; margin-bottom: 10px;">{goal_text}</div>', unsafe_allow_html=True)
- 
-    @st.dialog("Edit your goal")
-    def edit_task():
-        new_goal_text = st.text_input("✏️ Edit your goal", value=st.session_state.edit_task_text, key=f"edit_input_{goal['created_at']}")
+
+    with col1.expander(f"✏️ Edit goal"):
+        new_goal_text = st.text_input("✏️ Edit your goal", value=goal["text"], key=f"edit_input_{goal['created_at']}")
         if st.button("💾 Save changes", key=f"save_{goal['created_at']}"):
             goal['text'] = new_goal_text
             save_goals(goals)
-            del st.session_state.edit_task
-            del st.session_state.edit_task_text
-            st.rerun()
-
-    if 'edit_task' in st.session_state and st.session_state.edit_task == goal['text']:
-        edit_task()
-    else:
-        if col1.button("✏️ Edit goal", key=f"edit_{goal['created_at']}"):
-            st.session_state.edit_task = goal['text']
-            st.session_state.edit_task_text = goal['text']
             st.rerun()
 
     if col3.button(f"🔽 Show subgoals" if not goal['show_subgoals'] else f"🔼 Hide subgoals", key=f"toggle_subgoals_{goal['created_at']}"):
@@ -105,72 +90,37 @@ for i, goal in enumerate(goals):
         st.rerun()
 
     if goal['show_subgoals']:
-        @st.dialog("Add new subgoal")
-        def write():
-            new_subgoal_text = st.text_input(f"Add subgoal", key=f"subgoal_input_{goal['created_at']}")
-            if st.button("➕ Add"):
+        with col1.expander(f"➕ Add subgoal"):
+            new_subgoal_text = st.text_input(f"Add a new subgoal", key=f"subgoal_input_{goal['created_at']}")
+            if st.button("➕ Add subgoal", key=f"add_subgoal_{goal['created_at']}"):
                 if new_subgoal_text:
-                    ok = False
-                    for subgoal in goal["subgoals"]:
-                        if new_subgoal_text == subgoal["text"]:
-                            ok = True
-                    if (ok == False):
-                        goal["subgoals"].append({
-                            "text": new_subgoal_text,
-                            "completed": False,
-                        })
+                    if not any(subgoal['text'] == new_subgoal_text for subgoal in goal["subgoals"]):
+                        goal["subgoals"].append({"text": new_subgoal_text, "completed": False})
                         save_goals(goals)
                         st.rerun()
                     else:
-                        st.warning("You have already added this subgoal")
+                        st.warning("Subgoal already exists.")
 
-        if col1.button(f"➕ Add subgoal", key=f"add_subgoal_{goal['created_at']}"):
-            write()
-            
         for j, subgoal in enumerate(goal["subgoals"]):
-            col1, col2, col3 = st.columns([0.6, 0.2, 0.2])
-
-            subgoal_text = f"{subgoal['text']}"
-            if subgoal_text != "completed":
-                @st.dialog("Edit your subgoal")
-                def edit_subgoal():
-                    new_subgoal_text = st.text_input(f"✏️ Edit your subgoal", key=f"subgoal_input_edit_{goal['created_at']}")
-                    if st.button("💾 Save changes", key=f"save_subgoal_{goal['created_at']}"):
-                        ok = False
-                        for subgoal in goal["subgoals"]:
-                            if new_subgoal_text == subgoal["text"]:
-                                ok = True
-                        if ok == False:
-                            subgoal['text'] = new_subgoal_text
-                            save_goals(goals)
-                            del st.session_state.edit_subgoal
-                            del st.session_state.edit_subgoal_text
-                            st.rerun()
-                        else:
-                            st.warning("You have already added this subgoal")
-
-                if 'edit_subgoal' in st.session_state and st.session_state.edit_subgoal == subgoal['text']:
-                    edit_subgoal()
-                else:
-                    if col2.button(f"✏️ Edit subgoal", key=f"edit_subgoal_{goal['created_at']}_{subgoal['text']}"):
-                        st.session_state.edit_subgoal = subgoal['text']
-                        st.session_state.edit_subgoal_text = subgoal['text']
-                        st.rerun()
-
-            completed = col1.checkbox(f"✅ {subgoal['text']}", value=subgoal["completed"], key=f"subgoal_checkbox_{goal['created_at']}_{subgoal['text']}")
-
+            if subgoal["text"] == "completed":
+                completed = st.checkbox(f"✅ {subgoal['text']}", value=subgoal["completed"], key=f"subgoal_checkbox_{goal['created_at']}_{subgoal['text']}")
+                col1, col2, col3 = st.columns([0.6, 0.2, 0.2])
+            else:
+                col1, col2, col3 = st.columns([0.6, 0.2, 0.2])
+                completed = col1.checkbox(f"✅ {subgoal['text']}", value=subgoal["completed"], key=f"subgoal_checkbox_{goal['created_at']}_{subgoal['text']}")
             if completed != subgoal["completed"]:
                 subgoal["completed"] = completed
                 save_goals(goals)
                 st.rerun()
 
-            if subgoal_text != "completed":
+            if subgoal["text"] != "completed":
                 if col3.button(f"🗑️ Delete subgoal", key=f"del_subgoal_{goal['created_at']}_{subgoal['text']}"):
                     goal["subgoals"].pop(j)
                     save_goals(goals)
                     st.rerun()
 
-    if col3.button(f"🗑️ Delete goal", key=f"del_{goal['created_at']}"):
-        goals.pop(i)
-        save_goals(goals)
-        st.rerun()
+    with col3:
+        if st.button(f"🗑️ Delete goal", key=f"del_{goal['created_at']}"):
+            goals.pop(i)
+            save_goals(goals)
+            st.rerun()
