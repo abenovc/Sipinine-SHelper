@@ -33,6 +33,5 @@ pg = st.navigation(
 )
 
 st.logo("images/mini-logo.png", size = "large")
-st.sidebar.text("Study Efficiently")
 
 pg.run()
