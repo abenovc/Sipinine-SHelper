@@ -1,1 +1,8 @@
-{}
+{
+    "2025-03-30": {
+        "00:00": {
+            "task": "Sample",
+            "description": "Sample_description"
+        }
+    }
+}
