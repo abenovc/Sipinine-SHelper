@@ -108,6 +108,7 @@ for i, goal in enumerate(goals):
             else:
                 col1, col2, col3 = st.columns([0.6, 0.2, 0.2])
                 completed = col1.checkbox(f"✅ {subgoal['text']}", value=subgoal["completed"], key=f"subgoal_checkbox_{goal['created_at']}_{subgoal['text']}")
+            goal["completed"] = completed
             if completed != subgoal["completed"]:
                 subgoal["completed"] = completed
                 save_goals(goals)
