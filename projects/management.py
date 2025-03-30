@@ -7,7 +7,7 @@ import os
 from datetime import date
 #a =b
 #b = a
-api_key = (HIDDEN API KEY)
+api_key = "API IS HIDDEN"
 url = "https://api.openai.com/v1/chat/completions"
  
 headers = {
@@ -19,6 +19,7 @@ data_GPT = {
     "messages": [
         {"role": "system", "content": "You are a helpful assistant"},
         {"role": "system", "content": "Ты — помощник по редактированию JSON."},
+        {"role": "system", "content": "Тебе нельзя генерировать изображения и видео."},
         {"role": "user", "content": "user's prompt"}
     ],
     "max_tokens": 6000,
@@ -29,25 +30,58 @@ data_GPT = {
 }
 
 def load_json():
-    if not os.path.exists('plan.json'):
-        with open('plan.json', 'w') as f:
+    if not os.path.exists('data_bases/plan.json'):
+        with open('data_bases/plan.json', 'w') as f:
             json.dump({}, f)
-    with open('plan.json', 'r') as f:
+    with open('data_bases/plan.json', 'r') as f:
          return json.load(f)
 
 def save_json(plan):
-    with open('plan.json', 'w') as f:
+    with open('data_bases/plan.json', 'w') as f:
         json.dump(plan, f, indent=4)
 
+def load_task():
+    if not os.path.exists('data_bases/task.json'):
+        with open('data_bases/task.json', 'w') as f:
+            json.dump({}, f)
+    with open('data_bases/task.json', 'r') as f:
+         return json.load(f)
+
+def save_task(task):
+    with open('data_bases/task.json', 'w') as f:
+        json.dump(task, f, indent=4)
+
 def process_request(user_request, json_data):
+    prompt = f"""
+    Ты — помощник, который изменяет JSON-файл на основе запроса пользователя.Тебе нельзя генерировать изображения и видео.
+    Текущий JSON:
+    {json.dumps(json_data, indent=4, ensure_ascii=False)}
+ 
+    Запрос: "Добавь следующие задачи в расписание {user_request}"
+ 
+    Верни ОТЛИЧАЮЩИЙСЯ JSON, БЕЗ пояснений. Если какаято информация про дату,время или задание не указано придумай сам но не пиши свободное время или похожее.Ты можешь заменять сущетсвующие даты если пользователь не против
+    """
+ 
+    data_GPT["messages"][2] = {"role": "user", "content": prompt}
+ 
+    res = requests.post(url, headers=headers, data=json.dumps(data_GPT))
+    response = res.json()
+ 
+    try:
+        new_json = json.loads(response["choices"][0]["message"]["content"])
+        return new_json
+    except json.JSONDecodeError:
+        return json_data
+
+def process_task(user_request, json_data):
     prompt = f"""
     Ты — помощник, который изменяет JSON-файл на основе запроса пользователя.
     Текущий JSON:
     {json.dumps(json_data, indent=4, ensure_ascii=False)}
+    
+    Запрос: "Добавь следующую цель -> {user_request}"
  
-    Запрос: "{user_request}"
- 
-    Верни ОТЛИЧАЮЩИЙСЯ JSON, БЕЗ пояснений. Если какаято информация про дату,время или задание не указано придумай сам но не пиши свободное время или похожее
+    Верни ОТЛИЧАЮЩИЙСЯ JSON, БЕЗ пояснений. Если какая-то информация не указана то придумай сам
     """
  
     data_GPT["messages"][2] = {"role": "user", "content": prompt}
@@ -87,10 +121,14 @@ st.subheader(" Plan your tasks by day and don't miss important things! 🚀")
 st.divider()
 
 plan = load_json()
+task_main = load_task()
+
+if "plan" not in st.session_state:
+    st.session_state.plan = plan
 
 col4, col5, col6 = st.columns([2, 2, 1])
 
-col1, col2, col3 , col4 = st.columns([1.3, 1.3 , 1.2,9])
+col1, col2, col3 , col4 , col5 = st.columns([1.4, 1.4 , 1.3, 1.45 , 8])
 with col1:
     with st.popover("📅 ***Select day***"):
         st.subheader("Selected date")
@@ -120,6 +158,27 @@ with col3:
         st.session_state.search_query = st.text_input("Enter the task name", value=st.session_state.search_query, placeholder="For example, solve algebra")
     if st.button("🔍 **Task Search**"):
         search()
+with col4:
+    @st.dialog("🤖 AI Function")
+    def ai_func():
+        global plan
+        global task_main
+        user_input = st.text_area("Enter your goal or plan", placeholder = "For example, prepare for IELTS")
+        if st.button("Применить"):
+            if user_input:
+                updated_json = process_request(user_input, plan)
+                save_json(updated_json)
+                st.success("Schedule updated!")
+                plan = updated_json
+                updated_task = process_task(user_input , task_main)
+                save_task(updated_task)
+                st.success("Goal was added!")
+                task_main = updated_task
+#                st.rerun()
+            else:
+                st.toast("⚠️ Please fill in all fields..")
+    if st.button("🤖🧠 **AI Function**"):
+        ai_func()
 
 st.divider()
 
@@ -156,17 +215,6 @@ else :
     st.info(f"✨ You don't have any tasks for {selected_day}. Add the first one!")
 
 st.divider()
-user_input = st.text_area("Введите запрос", placeholder = "Например подготовка к IELTS")
- 
-if st.button("Применить"):
-    if user_input:
-        updated_json = process_request(user_input, plan)
-        save_json(updated_json)
-        st.success("Расписание обновлено!")
-        plan = updated_json
-        st.rerun()
-    else:
-        st.warning("Введите запрос!")
 
 if st.session_state.toast_message:
     for message in st.session_state.toast_message:
