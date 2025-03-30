@@ -1,0 +1,14 @@
+[
+    {
+        "goal_name": "Sample",
+        "created_at": "2025-03-30 10:03:09",
+        "subgoals": [
+            {
+                "subgoal_name": "completed",
+                "subgoal_completed": false
+            }
+        ],
+        "goal_completed": false,
+        "show_subgoals": false
+    }
+]
