@@ -69,66 +69,67 @@ def get_goal_color(subgoals, goal):
         return "background-color: #FF6347;"
 
 for i, goal in enumerate(goals):
-    col1, col2, col3 = st.columns([0.6, 0.2, 0.2])
+    if goal["goal_name"] != "Sample":
+        col1, col2, col3 = st.columns([0.6, 0.2, 0.2])
 
-    goal_color = get_goal_color(goal["subgoals"], goal)
-    goal_text = f"{goal["goal_name"]} (Created: {goal['created_at']})"
+        goal_color = get_goal_color(goal["subgoals"], goal)
+        goal_text = f"{goal["goal_name"]} (Created: {goal['created_at']})"
 
-    col1.markdown(f'<div style="{goal_color} padding: 10px; border-radius: 5px; margin-bottom: 10px;">{goal_text}</div>', unsafe_allow_html=True)
+        col1.markdown(f'<div style="{goal_color} padding: 10px; border-radius: 5px; margin-bottom: 10px;">{goal_text}</div>', unsafe_allow_html=True)
 
-    with col1.expander(f"✏️ Edit goal"):
-        new_goal_text = st.text_input("✏️ Edit your goal", value=goal["goal_name"], key=f"edit_input_{goal['created_at']}")
-        if st.button("💾 Save changes", key=f"save_{goal['created_at']}"):
-            goal['goal_name'] = new_goal_text
-            save_goals(goals)
-            st.rerun()
-
-    if col3.button(f"🔽 Show subgoals" if not goal['show_subgoals'] else f"🔼 Hide subgoals", key=f"toggle_subgoals_{goal['created_at']}"):
-        goal['show_subgoals'] = not goal['show_subgoals']
-        save_goals(goals)
-        st.rerun()
-
-    if goal['show_subgoals']:
-        with col1.expander(f"➕ Add subgoal"):
-            new_subgoal_text = st.text_input(f"Add a new subgoal", key=f"subgoal_input_{goal['created_at']}")
-            if st.button("➕ Add subgoal", key=f"add_subgoal_{goal['created_at']}"):
-                if new_subgoal_text:
-                    if not any(subgoal['subgoal_name'] == new_subgoal_text for subgoal in goal["subgoals"]):
-                        goal["subgoals"].append({"subgoal_name": new_subgoal_text, "subgoal_completed": False})
-                        save_goals(goals)
-                        st.rerun()
-                    else:
-                        st.warning("Subgoal already exists.")
-
-        for j, subgoal in enumerate(goal["subgoals"]):
-            if subgoal["subgoal_name"] == "completed":
-                completed = st.checkbox(f"✅ {subgoal['subgoal_name']}", value=subgoal["subgoal_completed"], key=f"subgoal_checkbox_{goal['created_at']}_{subgoal['subgoal_name']}")
-                col1, col2, col3 = st.columns([0.4, 0.4, 0.2])
-                goal["goal_completed"] = completed
-            else:
-                col1, col2, col3 = st.columns([0.4, 0.4, 0.2])
-                completed = col1.checkbox(f"✅ {subgoal['subgoal_name']}", value=subgoal["subgoal_completed"], key=f"subgoal_checkbox_{goal['created_at']}_{subgoal['subgoal_name']}")
-            
-            if completed != subgoal["subgoal_completed"]:
-                subgoal["subgoal_completed"] = completed
+        with col1.expander(f"✏️ Edit goal"):
+            new_goal_text = st.text_input("✏️ Edit your goal", value=goal["goal_name"], key=f"edit_input_{goal['created_at']}")
+            if st.button("💾 Save changes", key=f"save_{goal['created_at']}"):
+                goal['goal_name'] = new_goal_text
                 save_goals(goals)
                 st.rerun()
 
-            if subgoal["subgoal_name"] != "completed":
-                with col2.expander(f"✏️ Edit subgoal"):
-                    new_subgoal_text = st.text_input(f"Edit your subgoal", value=subgoal["subgoal_name"], key=f"edit_subgoal_input_{goal['created_at']}_{subgoal['subgoal_name']}")
-                    if st.button(f"💾 Save changes", key=f"save_subgoal_{goal['created_at']}_{subgoal['subgoal_name']}"):
-                        subgoal["subgoal_name"] = new_subgoal_text
-                        save_goals(goals)
-                        st.rerun()
+        if col3.button(f"🔽 Show subgoals" if not goal['show_subgoals'] else f"🔼 Hide subgoals", key=f"toggle_subgoals_{goal['created_at']}"):
+            goal['show_subgoals'] = not goal['show_subgoals']
+            save_goals(goals)
+            st.rerun()
 
-                if col3.button(f"🗑️ Delete subgoal", key=f"del_subgoal_{goal['created_at']}_{subgoal['subgoal_name']}"):
-                    goal["subgoals"].pop(j)
+        if goal['show_subgoals']:
+            with col1.expander(f"➕ Add subgoal"):
+                new_subgoal_text = st.text_input(f"Add a new subgoal", key=f"subgoal_input_{goal['created_at']}")
+                if st.button("➕ Add subgoal", key=f"add_subgoal_{goal['created_at']}"):
+                    if new_subgoal_text:
+                        if not any(subgoal['subgoal_name'] == new_subgoal_text for subgoal in goal["subgoals"]):
+                            goal["subgoals"].append({"subgoal_name": new_subgoal_text, "subgoal_completed": False})
+                            save_goals(goals)
+                            st.rerun()
+                        else:
+                            st.warning("Subgoal already exists.")
+
+            for j, subgoal in enumerate(goal["subgoals"]):
+                if subgoal["subgoal_name"] == "completed":
+                    completed = st.checkbox(f"✅ {subgoal['subgoal_name']}", value=subgoal["subgoal_completed"], key=f"subgoal_checkbox_{goal['created_at']}_{subgoal['subgoal_name']}")
+                    col1, col2, col3 = st.columns([0.4, 0.4, 0.2])
+                    goal["goal_completed"] = completed
+                else:
+                    col1, col2, col3 = st.columns([0.4, 0.4, 0.2])
+                    completed = col1.checkbox(f"✅ {subgoal['subgoal_name']}", value=subgoal["subgoal_completed"], key=f"subgoal_checkbox_{goal['created_at']}_{subgoal['subgoal_name']}")
+                
+                if completed != subgoal["subgoal_completed"]:
+                    subgoal["subgoal_completed"] = completed
                     save_goals(goals)
                     st.rerun()
 
-    with col3:
-        if st.button(f"🗑️ Delete goal", key=f"del_{goal['created_at']}"):
-            goals.pop(i)
-            save_goals(goals)
-            st.rerun()
+                if subgoal["subgoal_name"] != "completed":
+                    with col2.expander(f"✏️ Edit subgoal"):
+                        new_subgoal_text = st.text_input(f"Edit your subgoal", value=subgoal["subgoal_name"], key=f"edit_subgoal_input_{goal['created_at']}_{subgoal['subgoal_name']}")
+                        if st.button(f"💾 Save changes", key=f"save_subgoal_{goal['created_at']}_{subgoal['subgoal_name']}"):
+                            subgoal["subgoal_name"] = new_subgoal_text
+                            save_goals(goals)
+                            st.rerun()
+
+                    if col3.button(f"🗑️ Delete subgoal", key=f"del_subgoal_{goal['created_at']}_{subgoal['subgoal_name']}"):
+                        goal["subgoals"].pop(j)
+                        save_goals(goals)
+                        st.rerun()
+
+        with col3:
+            if st.button(f"🗑️ Delete goal", key=f"del_{goal['created_at']}"):
+                goals.pop(i)
+                save_goals(goals)
+                st.rerun()
