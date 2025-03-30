@@ -75,13 +75,17 @@ def init_all_tags():
             list_tags text
         )
     """)
+    operation.execute("SELECT count(*) FROM all_tags")
+    if operation.fetchone()[0] == 0:
+        operation.execute("INSERT INTO all_tags (list_tags) VALUES ('')")
+
     connection.commit()
     connection.close()
 
-def update_init_tags(all_tags):
+def update_init_tags(all_tags_promt):
     connection = sqlite3.connect("data_bases/tags.db")
     operation = connection.cursor()
-    all_tags_str = ", ".join(all_tags)
+    all_tags_str = ", ".join(all_tags_promt)
 
     operation.execute("UPDATE all_tags SET list_tags = ?", (all_tags_str,))
     connection.commit()
@@ -92,9 +96,12 @@ def get_init_tags():
     operation = connection.cursor()
 
     operation.execute("SELECT list_tags FROM all_tags")
-    list_all_tags = operation.fetchall()
+    result = operation.fetchone()
     connection.close()
-    return list_all_tags
+
+    if result and result[0]:
+        return result[0].split(", ")
+    return []
 
 
 init()
@@ -102,17 +109,23 @@ init_all_tags()
 
 if "init_tags" not in st.session_state:
     st.session_state.init_tags = []
-if len(get_init_tags()) > 0:
-    st.session_state.init_tags = get_init_tags()[0][0].split(", ")
+
+sz = get_init_tags()
+
+if len(sz) > 0:
+    st.session_state.init_tags = sz
 
 st.header("📒 Notion")
 
 colS1, colS2 = st.columns([0.1, 0.1])
 
-with colS1:
-    selected_tags = st.multiselect("Searching By Tags", st.session_state.init_tags)
+if "selected_tags" not in st.session_state:
+    st.session_state.selected_tags = []
 
-col1_plus, col2_plus = st.columns([0.6, 0.1])
+with colS1:
+    st.session_state.selected_tags = st.multiselect("Searching By Tags", st.session_state.init_tags)
+
+col1_plus, col3_plus, col2_plus = st.columns([0.6, 0.11, 0.2])
 
 with col1_plus:
     if st.button(":heavy_plus_sign:"):
@@ -142,6 +155,7 @@ with col2_plus:
             new_all_tags = st.text_input("Select Your Own Tags", value = ", ".join(st.session_state.init_tags))
             new_all_tags = new_all_tags.replace(" ", "")
             st.session_state.init_tags = new_all_tags.split(",")
+            update_init_tags(st.session_state.init_tags)
             if st.button("Update"):
                 st.rerun()
         select_all_tags()
@@ -149,6 +163,12 @@ with col2_plus:
 st.subheader("📌 My Notes:")
 
 list_notes = get_note()
+
+with col3_plus:
+    if st.button("Search") and st.session_state.selected_tags:
+        list_notes = filter_get_note(st.session_state.selected_tags)
+    else:
+        list_notes = get_note()
 
 grouped_notes = {}
 for note in list_notes:
@@ -181,4 +201,3 @@ else:
                     if st.button("❌ Delete", key = f"delete_{note[0]}"):
                         delete_note(note[0])
                         st.rerun()
-update_init_tags(st.session_state.init_tags)
