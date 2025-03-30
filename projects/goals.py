@@ -115,7 +115,7 @@ for i, goal in enumerate(goals):
                 st.rerun()
 
             if subgoal["subgoal_name"] != "completed":
-                with col2.expander(f"✏️ Edit subgoal '{subgoal['subgoal_name']}'"):
+                with col2.expander(f"✏️ Edit subgoal"):
                     new_subgoal_text = st.text_input(f"Edit your subgoal", value=subgoal["subgoal_name"], key=f"edit_subgoal_input_{goal['created_at']}_{subgoal['subgoal_name']}")
                     if st.button(f"💾 Save changes", key=f"save_subgoal_{goal['created_at']}_{subgoal['subgoal_name']}"):
                         subgoal["subgoal_name"] = new_subgoal_text
